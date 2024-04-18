@@ -1,6 +1,5 @@
-fun main() {
-    val server = Server()
+fun main(){
     while(true) {
-        server.Start()
+        Server().start()
     }
 }
