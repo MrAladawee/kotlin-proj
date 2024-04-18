@@ -1,31 +1,33 @@
-import java.io.BufferedInputStream
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.InputStreamReader
 import java.io.PrintWriter
-import java.io.Writer
 import java.net.Socket
+import java.sql.Connection
+import java.sql.DriverManager
+import java.sql.SQLException
 
-class Client(val host: String = "localhost", val port: Int = 8080) {
+class Client(
+    val host: String = "localhost",
+    val port: Int = 8080) {
 
-    fun Start(){
-        var socket: Socket? = null
-        var pw: PrintWriter? = null
-        var bw: BufferedReader? = null
-        try{
+    fun sendRequest(request: String){
+        var socket : Socket? = null
+        try {
             socket = Socket(host, port)
-            pw = PrintWriter(socket.getOutputStream(),true)
-            pw.println("hello")
-            bw = BufferedReader(InputStreamReader(socket.getInputStream()))
-            println(bw.readLine())
+
+            var pw = PrintWriter(socket.getOutputStream())
+            pw.println(request)
+            pw.flush()
+
+            var br = socket.getInputStream().bufferedReader()
+            println(br.readLine())
+            pw.close()
+            br.close()
         }
         catch (e: Exception){
-            println("error")
+            println(e.message)
         }
-        finally {
+        finally{
             socket?.close()
-            pw?.close()
-            bw?.close()
         }
     }
+
 }
