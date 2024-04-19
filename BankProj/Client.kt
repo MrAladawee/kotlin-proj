@@ -8,24 +8,25 @@ class Client(
     val host: String = "localhost",
     val port: Int = 8080) {
 
-    fun sendRequest(request: String){
-        var socket : Socket? = null
+    fun sendRequest(request: String) {
+        var socket: Socket? = null
         try {
             socket = Socket(host, port)
-
             var pw = PrintWriter(socket.getOutputStream())
             pw.println(request)
             pw.flush()
 
             var br = socket.getInputStream().bufferedReader()
-            println(br.readLine())
+            var line: String?
+            while (br.readLine().also { line = it } != null) {
+                println(line)
+            }
+
             pw.close()
             br.close()
-        }
-        catch (e: Exception){
+        } catch (e: Exception) {
             println(e.message)
-        }
-        finally{
+        } finally {
             socket?.close()
         }
     }
