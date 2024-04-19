@@ -12,7 +12,7 @@ class Database {
 
     // U need to write down ur parameters to link with Database
     val USER_NAME : String = "root"
-    val PASSWORD : String = ""
+    val PASSWORD : String = "root"
     val URL : String = "jdbc:mysql://127.0.0.1:3306/Bank"
 
     val connection: Connection by lazy {
@@ -183,10 +183,10 @@ class Database {
 
     }
 
-    fun transfer(accountFromId: Int, accountToId: Int, amount: Double) {
+    fun transfer(accountFromId: Int, accountToId: Int, amount: Double): String {
 
-        val accountFromExistsQuery = "SELECT COUNT(*) FROM accounts WHERE id = $accountFromId"
-        val accountToExistsQuery = "SELECT COUNT(*) FROM accounts WHERE id = $accountToId"
+        val accountFromExistsQuery = "SELECT COUNT(*) FROM accounts WHERE account_id = $accountFromId"
+        val accountToExistsQuery = "SELECT COUNT(*) FROM accounts WHERE account_id = $accountToId"
 
         val resultSetFromExists = connection.prepareStatement(accountFromExistsQuery).executeQuery()
         resultSetFromExists.next()
@@ -197,23 +197,23 @@ class Database {
         val accountToExists = resultSetToExists.getInt(1)
 
         if (accountFromExists == 0 || accountToExists == 0) {
-            println("Ошибка: один из счетов не существует")
+            return("Ошибка: один из счетов не существует")
         } else {
-            val balanceQuery = "SELECT balance FROM accounts WHERE id = $accountFromId"
+            val balanceQuery = "SELECT current_amount FROM accounts WHERE account_id = $accountFromId"
             val resultSetBalance = connection.prepareStatement(balanceQuery).executeQuery()
             resultSetBalance.next()
             val balance = resultSetBalance.getDouble(1)
 
             if (balance < amount) {
-                println("Ошибка: недостаточно средств на счете отправителя")
+                return ("Ошибка: недостаточно средств на счете отправителя")
             } else {
-                val updateFromQuery = "UPDATE accounts SET balance = balance - $amount WHERE id = $accountFromId"
-                val updateToQuery = "UPDATE accounts SET balance = balance + $amount WHERE id = $accountToId"
+                val updateFromQuery = "UPDATE accounts SET current_amount = current_amount - $amount WHERE account_id = $accountFromId"
+                val updateToQuery = "UPDATE accounts SET current_amount = current_amount + $amount WHERE account_id = $accountToId"
 
                 connection.prepareStatement(updateFromQuery).executeUpdate()
                 connection.prepareStatement(updateToQuery).executeUpdate()
 
-                println("Перевод успешно выполнен")
+                return("Перевод успешно выполнен")
             }
 
         }
@@ -247,30 +247,30 @@ class Database {
         }
     }
 
-    fun getTransactionHistory(accountNumber: Int) {
+    fun getTransactionHistory(accountNumber: Int): String {
+        val result = StringBuilder()
         try {
             val sql = "SELECT * FROM Transactions WHERE from_id = ? OR to_id = ?;"
             val preparedStatement = connection.prepareStatement(sql)
             preparedStatement.setInt(1, accountNumber)
             preparedStatement.setInt(2, accountNumber)
             val resultSet = preparedStatement.executeQuery()
-
             var metadata = resultSet.metaData
-
             for (i in 1..metadata.columnCount) {
-                print("\t${metadata.getColumnName(i)} ")
-            }; println()
-
+                result.append("\t${metadata.getColumnName(i)} ")
+            }
+            result.appendLine()
             while (resultSet.next()) {
                 metadata = resultSet.metaData
-
                 for (i in 1..metadata.columnCount) {
-                    print("\t${resultSet.getString(i)} ")
-                }; println()
+                    result.append("\t${resultSet.getString(i)} ")
+                }
+                result.appendLine()
             }
         } catch (e: SQLException) {
-            println("Error executing query: ${e.message}")
+            result.append("Error executing query: ${e.message}")
         }
+        return result.toString()
     }
 
     fun accountExists(accountNumber: Int): Boolean {
@@ -326,21 +326,6 @@ class Database {
         return balance
     }
 
-    fun processRequest(request: String): String {
-        val pattern = Pattern.compile("^([0-9]+) (.+)$")
-        val matcher = pattern.matcher(request)
-
-        if (matcher.find()) {
-            val queryNumber = matcher.group(1)
-            val parameters = matcher.group(2)
-
-            // Выполнение SQL запроса с номером queryNumber и параметрами parameters
-            return "Выполнен SQL запрос $queryNumber с параметрами: $parameters"
-        } else {
-            return "Неверный формат запроса"
-        }
-    }
-
 }
 
 class Server(
@@ -371,9 +356,9 @@ class Server(
         }
         finally {
             clientSocket?.close()
+            serverSocket.close()
         }
     }
-
 
     private fun processRequest(request: String): String {
 
@@ -394,7 +379,7 @@ class Server(
 
             // Выполнение перевода от клиента банка с senderId к клиенту с receiverId на сумму amount
 
-            return "Выполнен перевод от $senderId к $receiverId на сумму $amount"
+            return database.transfer(senderId, receiverId, amount.toDouble())
 
         }
 
@@ -402,12 +387,12 @@ class Server(
             val clientId = matcherHistory.group(1).toInt()
 
             // Получение истории запросов для клиента с clientId
-            database.getTransactionHistory(clientId)
-            return "История запросов для клиента $clientId"
+            return database.getTransactionHistory(clientId)
 
         }
 
         else if (matcher1.find()) {
+            val a: Int
             return "1"
 
         }
