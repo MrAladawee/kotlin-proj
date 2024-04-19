@@ -1,4 +1,4 @@
 fun main(){
     val client = Client()
-    client.sendRequest("2 100")
+    client.sendRequest("1 200, 100, 2")
 }
