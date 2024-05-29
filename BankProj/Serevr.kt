@@ -1,4 +1,3 @@
-import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
@@ -6,13 +5,12 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.util.regex.Pattern
-import javax.xml.crypto.Data
 
 class Database {
 
     // U need to write down ur parameters to link with Database
     val USER_NAME : String = "root"
-    val PASSWORD : String = "root"
+    val PASSWORD : String = ""
     val URL : String = "jdbc:mysql://127.0.0.1:3306/Bank"
 
     val connection: Connection by lazy {
@@ -27,136 +25,7 @@ class Database {
         }
     }
 
-    fun createTable(table_name: String, values_arr: Array<String>) {
-        try {
-            val values = values_arr.joinToString(", ")
-
-            val sql = "CREATE TABLE IF NOT EXISTS $table_name ($values);"
-            connection.prepareStatement(sql).executeUpdate()
-            println("Table \"$table_name\" has been created OR does it exist")
-        } catch (e: SQLException) {
-            println("Error creating table.")
-            println(e.message)
-        }
-    }
-
-    fun createUser(login: String, password: String, bank_account: Int) {
-
-        try {
-            val max_account: Int
-
-            val sql = "SELECT MAX(bank_account) FROM clients;"
-            val result = connection.prepareStatement(sql).executeQuery()
-
-            max_account = result.getInt(1)
-
-            val preparedStatement = connection.prepareStatement("INSERT INTO clients (bank_account, login, password) " +
-                    "VALUES (?, ?, ?);")
-            preparedStatement.setInt(1, (max_account+1))
-            preparedStatement.setString(2, login)
-            preparedStatement.setString(3, password)
-            preparedStatement.executeUpdate()
-            println("Insert completed")
-
-        } catch (e: SQLException) {
-            print("Error inserting into table OR selecting: ")
-            println(e.message)
-        }
-
-    }
-
-    fun insertInto(table_name: String, name: String, age: Int) {
-        try {
-            val preparedStatement = connection.prepareStatement("INSERT INTO $table_name (name, age) VALUES (?, ?);")
-            preparedStatement.setString(1, name)
-            preparedStatement.setInt(2, age)
-            preparedStatement.executeUpdate()
-            println("Insert completed")
-
-        } catch (e: SQLException) {
-            print("Error inserting into table: ")
-            println(e.message)
-        }
-    }
-
-    fun truncate(table_name: String) {
-        try {
-            val sql = "TRUNCATE TABLE $table_name;"
-            connection.prepareStatement(sql).executeUpdate()
-            println("Truncate was successfully")
-
-        } catch (e: SQLException) {
-            print("Truncate error: ")
-            println(e.message)
-        }
-    }
-
-    fun selectAll(table_name: String) {
-
-        try {
-            val sql = "SELECT * FROM $table_name;"
-            val result = connection.prepareStatement(sql).executeQuery()
-
-            var metadata = result.metaData
-
-            for (i in 1..metadata.columnCount) {
-                print("\t${metadata.getColumnName(i)} ")
-            }; println()
-
-            while (result.next()) {
-                metadata = result.metaData
-
-                for (i in 1..metadata.columnCount) {
-                    print("\t${result.getString(i)} ")
-                }; println()
-            }
-
-        } catch (e: SQLException) {
-            println(e.message)
-        }
-
-    }
-
-    fun desc(table_name: String) {
-
-        try{
-            val sql = "DESC $table_name;"
-            val result = connection.prepareStatement(sql).executeQuery()
-
-            var metadata = result.metaData
-
-            for (i in 1..metadata.columnCount) {
-                print("\t${metadata.getColumnName(i)} ")
-            }; println()
-
-            while (result.next()) {
-                metadata = result.metaData
-
-                for (i in 1..metadata.columnCount) {
-                    print("\t${result.getString(i)} ")
-                }; println()
-            }
-
-        } catch (e: SQLException) {
-            println(e.message)
-        }
-
-    }
-
-    fun dropTable(table_name: String) {
-
-        try {
-            val sql = "DROP TABLE $table_name;"
-            connection.prepareStatement(sql).executeUpdate()
-            println("Table \"$table_name\" has been dropped")
-        } catch (e: SQLException){
-            println(e.message)
-        }
-
-    }
-
     //
-
     fun checkUser(table_name: String, user_name: String){
 
         try {
@@ -183,7 +52,8 @@ class Database {
 
     }
 
-    fun transfer(accountFromId: Int, accountToId: Int, amount: Double): String {
+    // СДЕЛАНО
+    fun transfer(accountFromId: Int, accountToId: Int, amount: Double) : String {
 
         val accountFromExistsQuery = "SELECT COUNT(*) FROM accounts WHERE account_id = $accountFromId"
         val accountToExistsQuery = "SELECT COUNT(*) FROM accounts WHERE account_id = $accountToId"
@@ -197,7 +67,7 @@ class Database {
         val accountToExists = resultSetToExists.getInt(1)
 
         if (accountFromExists == 0 || accountToExists == 0) {
-            return("Ошибка: один из счетов не существует")
+            return "Ошибка: один из счетов не существует"
         } else {
             val balanceQuery = "SELECT current_amount FROM accounts WHERE account_id = $accountFromId"
             val resultSetBalance = connection.prepareStatement(balanceQuery).executeQuery()
@@ -205,7 +75,7 @@ class Database {
             val balance = resultSetBalance.getDouble(1)
 
             if (balance < amount) {
-                return ("Ошибка: недостаточно средств на счете отправителя")
+                return "Ошибка: недостаточно средств на счете отправителя"
             } else {
                 val updateFromQuery = "UPDATE accounts SET current_amount = current_amount - $amount WHERE account_id = $accountFromId"
                 val updateToQuery = "UPDATE accounts SET current_amount = current_amount + $amount WHERE account_id = $accountToId"
@@ -213,64 +83,85 @@ class Database {
                 connection.prepareStatement(updateFromQuery).executeUpdate()
                 connection.prepareStatement(updateToQuery).executeUpdate()
 
-                return("Перевод успешно выполнен")
+                return "Перевод успешно выполнен"
             }
 
         }
     }
 
+    // СДЕЛАНО
     fun generateNewAccountNumber(): Int {
-        val sql = "SELECT MAX(account_number) AS max_account FROM Accounts;"
+        val sql = "SELECT MAX(account_id) AS max_account FROM Accounts;"
         val preparedStatement = connection.prepareStatement(sql)
         val resultSet = preparedStatement.executeQuery()
 
         return if (resultSet.next()) {
-            resultSet.getInt("max_account") + 1
+            val maxAccount = resultSet.getInt("max_account")
+            if (resultSet.wasNull()) {
+                1000000 // Starting point for new accounts
+            } else {
+                maxAccount + 1
+            }
         } else {
             1000000 // Starting point for new accounts
         }
     }
 
+    // СДЕЛАНО
     fun registerNewUser(login: String, password: String) {
         try { // Generate new account number based on existing accounts
             val newAccountNumber = generateNewAccountNumber()
 
-            val sql = "INSERT INTO Clients (login, password, account_id) VALUES (?, ?, ?);"
-            val preparedStatement = connection.prepareStatement(sql)
-            preparedStatement.setString(1, login)
-            preparedStatement.setString(2, password)
-            preparedStatement.setInt(3, newAccountNumber)
-            preparedStatement.executeUpdate()
+            // Insert new user into Clients table
+            val sqlClients = "INSERT INTO Clients (login, password, account_id) VALUES (?, ?, ?);"
+            val preparedStatementClients = connection.prepareStatement(sqlClients)
+            preparedStatementClients.setString(1, login)
+            preparedStatementClients.setString(2, password)
+            preparedStatementClients.setInt(3, newAccountNumber)
+            preparedStatementClients.executeUpdate()
+
+            // Insert new account into Accounts table
+            val sqlAccounts = "INSERT INTO Accounts (account_id, current_amount) VALUES (?, ?);"
+            val preparedStatementAccounts = connection.prepareStatement(sqlAccounts)
+            preparedStatementAccounts.setInt(1, newAccountNumber)
+            preparedStatementAccounts.setDouble(2, 0.0) // Assuming the initial amount is 0
+            preparedStatementAccounts.executeUpdate()
 
         } catch (e: SQLException) {
             println("Error executing query: ${e.message}")
         }
     }
 
+    // СДЕЛАНО
     fun getTransactionHistory(accountNumber: Int): String {
-        val result = StringBuilder()
+        val stringBuilder = StringBuilder()
         try {
             val sql = "SELECT * FROM Transactions WHERE from_id = ? OR to_id = ?;"
             val preparedStatement = connection.prepareStatement(sql)
             preparedStatement.setInt(1, accountNumber)
             preparedStatement.setInt(2, accountNumber)
             val resultSet = preparedStatement.executeQuery()
-            var metadata = resultSet.metaData
-            for (i in 1..metadata.columnCount) {
-                result.append("\t${metadata.getColumnName(i)} ")
+
+            val metaData = resultSet.metaData
+            val columnCount = metaData.columnCount
+
+            // Сначала добавим заголовки столбцов
+            for (i in 1..columnCount) {
+                stringBuilder.append("\t${metaData.getColumnName(i)} ")
             }
-            result.appendLine()
+            stringBuilder.append("\n")
+
+            // Теперь добавим строки данных
             while (resultSet.next()) {
-                metadata = resultSet.metaData
-                for (i in 1..metadata.columnCount) {
-                    result.append("\t${resultSet.getString(i)} ")
+                for (i in 1..columnCount) {
+                    stringBuilder.append("\t${resultSet.getString(i)} ")
                 }
-                result.appendLine()
+                stringBuilder.append("\n")
             }
         } catch (e: SQLException) {
-            result.append("Error executing query: ${e.message}")
+            stringBuilder.append("Error executing query: ${e.message}")
         }
-        return result.toString()
+        return stringBuilder.toString()
     }
 
     fun accountExists(accountNumber: Int): Boolean {
@@ -286,21 +177,43 @@ class Database {
         }
     }
 
-    fun checkAccount(login: String, password: String): Boolean {
+    // СДЕЛАНО
+    fun clientExists(login: String, password: String): String {
         try {
-            var sql = "SELECT * FROM Clients WHERE login = ? AND password = ?;"
+            var sql = "SELECT * FROM Clients WHERE login = ?;"
             val preparedStatement = connection.prepareStatement(sql)
             preparedStatement.setString(1, login)
-            preparedStatement.setString(2, password)
-            val resultSet = preparedStatement.executeQuery()
-            return resultSet.next()
+            var resultSet = preparedStatement.executeQuery()
+
+            if (resultSet.next().toString() != "false") {
+                var sql = "SELECT * FROM Clients WHERE login = ? AND password = ?;"
+                val preparedStatement = connection.prepareStatement(sql)
+                preparedStatement.setString(1, login)
+                preparedStatement.setString(2, password)
+                resultSet = preparedStatement.executeQuery()
+
+                if (resultSet.next().toString() != "false") {
+                    return "1"
+                } // All's good
+
+                else {
+                    return "2" // Error in password
+                }
+
+            }
+            else {
+                return "3" // Code 2: there is no such login in db
+            }
+
+            return resultSet.next().toString()
         } catch (e: SQLException) {
             println("Error executing query: ${e.message}")
-            return false
+            return "-1"
         }
     }
 
-    fun checkAccountBalanceByLogin(connection: Connection, login: String): Int {
+    // СДЕЛАНО
+    fun checkAccountBalanceByLogin(login: String): Float {
         var balance = 0
 
         try {
@@ -323,82 +236,119 @@ class Database {
             println("Error executing query: ${e.message}")
         }
 
-        return balance
+        return balance.toFloat()
+    }
+
+    fun takeAccountId(login: String) : Int {
+        try {
+            val sql = "SELECT account_id FROM Clients WHERE login = ?;"
+
+            connection.prepareStatement(sql).use { preparedStatement ->
+                preparedStatement.setString(1, login)
+                val result = preparedStatement.executeQuery()
+                if (result.next()) {
+                    return result.getInt("account_id")
+                } else {
+                    return -2 // или любое другое значение, которое указывает на отсутствие аккаунта
+                }
+            }
+        } catch (e: SQLException) {
+            e.printStackTrace() // Логгирование ошибки для отладки
+            return -1
+        }
     }
 
 }
 
-class Server(
-    val port : Int = 8080) {
+class Server(val port: Int = 8080) {
 
     val serverSocket = ServerSocket(port)
 
-    fun start(){
-        var clientSocket : Socket? = null
-        try {
-            clientSocket = serverSocket.accept()
-            var br = clientSocket.getInputStream().bufferedReader()
-            val request = br.readLine()
-
-            // Обработка запроса от клиента
-            val response = processRequest(request)
-
-            var pw = PrintWriter(clientSocket.getOutputStream())
-            pw.println(response)
-            pw.flush()
-
-            br.close()
-            pw.close()
-
-        }
-        catch (e: Exception){
-            println(e.message)
-        }
-        finally {
-            clientSocket?.close()
-            serverSocket.close()
+    fun start() {
+        while (true) {
+            val clientSocket = serverSocket.accept()
+            Thread(ClientHandler(clientSocket)).start()
         }
     }
 
-    private fun processRequest(request: String): String {
+    inner class ClientHandler(private val clientSocket: Socket) : Runnable {
+        override fun run() {
+            try {
+                clientSocket.use {
+                    val br = it.getInputStream().bufferedReader()
+                    val request = br.readLine()
 
-        val database = Database()
+                    // Обработка запроса от клиента
+                    val response = processRequest(request)
 
-        val patternTransfer = Pattern.compile("^1 ([0-9]+), ([0-9]+), ([0-9]+)$")
-        val patternHistory = Pattern.compile("^2 ([0-9]+)$")
-        val pattern1 = Regex("^4 (.+), (.+)")
+                    val pw = PrintWriter(it.getOutputStream(), true)
+                    pw.println(response)
 
-        val matcherTransfer = patternTransfer.matcher(request)
-        val matcherHistory = patternHistory.matcher(request)
-        val matcher1 = patternHistory.matcher(request)
-
-        if (matcherTransfer.find()) {
-            val senderId = matcherTransfer.group(1).toInt()
-            val receiverId = matcherTransfer.group(2).toInt()
-            val amount = matcherTransfer.group(3).toInt()
-
-            // Выполнение перевода от клиента банка с senderId к клиенту с receiverId на сумму amount
-
-            return database.transfer(senderId, receiverId, amount.toDouble())
-
+                    br.close()
+                    pw.close()
+                }
+            } catch (e: Exception) {
+                println(e.message)
+            }
         }
 
-        else if (matcherHistory.find()) {
-            val clientId = matcherHistory.group(1).toInt()
+        private fun processRequest(request: String): String {
+            val database = Database()
 
-            // Получение истории запросов для клиента с clientId
-            return database.getTransactionHistory(clientId)
+            val patternTransfer = Pattern.compile("^1 ([0-9]+), ([0-9]+), ([0-9]+)$")
+            val patternHistory = Pattern.compile("^2 ([0-9]+)$")
+            val patternLogin = Pattern.compile("^3 (.+) (.+)$")
+            val patternRegister = Pattern.compile("^4 (.+) (.+)$")
+            val patternCheckBalance = Pattern.compile("^5 (.+)$")
 
-        }
+            val matcherTransfer = patternTransfer.matcher(request)
+            val matcherHistory = patternHistory.matcher(request)
+            val matcherLogin = patternLogin.matcher(request)
+            val matcherRegister = patternRegister.matcher(request)
+            val matcherCheckBalance = patternCheckBalance.matcher(request)
 
-        else if (matcher1.find()) {
-            val a: Int
-            return "1"
+            return when {
+                matcherTransfer.find() -> {
+                    val senderId = matcherTransfer.group(1).toInt()
+                    val receiverId = matcherTransfer.group(2).toInt()
+                    val amount = matcherTransfer.group(3).toInt()
 
-        }
-
-        else {
-            return "Неверный формат запроса"
+                    // Выполнение перевода от клиента банка с senderId к клиенту с receiverId на сумму amount
+                    database.transfer(senderId, receiverId, amount.toDouble())
+                    "Выполнен перевод от $senderId к $receiverId на сумму $amount"
+                }
+                matcherHistory.find() -> {
+                    val accountId = matcherHistory.group(1).toInt()
+                    database.getTransactionHistory(accountId)
+                }
+                matcherLogin.find() -> {
+                    val login = matcherLogin.group(1)
+                    val password = matcherLogin.group(2)
+                    val resultCheck = database.clientExists(login, password)
+                    if (resultCheck == "1") {
+                        "Пользователь $login успешно вошел в систему"
+                    } else if (resultCheck == "2") {
+                        "Неверный пароль"
+                    } else if (resultCheck == "3"){
+                        "Такого пользователя нет. Вы хотите создать новый аккаунт?"
+                    } else {
+                        "Ошибка в запросе"
+                    }
+                }
+                matcherRegister.find() -> {
+                    val login = matcherRegister.group(1)
+                    val password = matcherRegister.group(2)
+                    database.registerNewUser(login, password)
+                    "Пользователь $login успешно зарегистрирован"
+                }
+                matcherCheckBalance.find() -> {
+                    val login = matcherCheckBalance.group(1)
+                    val balance = database.checkAccountBalanceByLogin(login)
+                    val acc_id = database.takeAccountId(login)
+                    "$acc_id ($login): $balance"
+                }
+                else -> "Неверный формат запроса"
+            }
         }
     }
 }
