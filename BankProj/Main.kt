@@ -1,5 +1,3 @@
 fun main(){
-    while(true) {
-        Server().start()
-    }
+    Server().start()
 }
