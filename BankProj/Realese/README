@@ -1,0 +1,17 @@
+Transactions
+  1 id Первичный	int(11)		
+	2	transaction_id	int(11)		
+	3	from_id	int(11)	
+	4	to_id	int(11)		
+	5	amount	int(11)	
+
+Clients
+1	id Первичный	int(11)			Нет	Нет		AUTO_INCREMENT	Изменить	Удалить	
+	2	login Индекс	varchar(128)	utf8mb4_unicode_ci		Нет	Нет			Изменить	Удалить	
+	3	password	varchar(128)	utf8mb4_unicode_ci		Нет	Нет			Изменить	Удалить	
+	4	account_id	int(11)			Нет	Нет			Изменить	Удалить	
+
+Accounts
+1	id Первичный	int(11)			Нет	Нет		AUTO_INCREMENT	Изменить	Удалить	
+	2	account_id	int(11)			Нет	Нет			Изменить	Удалить	
+	3	current_amount	float			Нет	Нет			Изменить	Удалить
