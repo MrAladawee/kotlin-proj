@@ -98,7 +98,7 @@ fun App() {
                             .verticalScroll(rememberScrollState())
                     ) {
                         Text(
-                            text = transactionHistory.replace(";", "\n"),
+                            text = "Номер Транзакции, Номер отправителя, Номер получателя, Сумма\n" + transactionHistory.replace(";", "\n"),
                             modifier = Modifier.padding(8.dp),
                             style = MaterialTheme.typography.body1
                         )
