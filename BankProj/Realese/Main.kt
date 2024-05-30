@@ -10,6 +10,8 @@ import androidx.compose.ui.window.singleWindowApplication
 import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.Socket
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 
 fun main() = singleWindowApplication {
     App()
@@ -27,120 +29,159 @@ fun App() {
     var transferMessage by remember { mutableStateOf<String?>(null) }
     var transactionHistory by remember { mutableStateOf("") }
 
-    if (loggedIn) {
+    MaterialTheme {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp)
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(text = "Номер счета: $accountInfo")
-                Button(onClick = {
-                    loggedIn = false
-                    accountInfo = ""
-                    login = ""
-                    password = ""
-                    message = null
-                    // Обнуляем значение transferMessage при выходе из учетной записи
-                    transferMessage = null
-                }) {
-                    Text("Exit")
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+            if (loggedIn) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Номер счета: $accountInfo",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.h6,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
 
-            OutlinedTextField(
-                value = receiverAccount,
-                onValueChange = { receiverAccount = it },
-                label = { Text("Receiver Account ID") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = transferAmount,
-                onValueChange = { transferAmount = it },
-                label = { Text("Transfer Amount") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = {
-                val response = sendRequest("1 ${accountInfo.split(" ")[0]}, $receiverAccount, $transferAmount")
-                transferMessage = response
-                if (response.contains("успешно")) {
-                    accountInfo = getAccountInfo(login)
-                    transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
-                }
-            }) {
-                Text("Send Transfer")
-            }
-            transferMessage?.let {
-                Text(text = it)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+                    OutlinedTextField(
+                        value = receiverAccount,
+                        onValueChange = { receiverAccount = it },
+                        label = { Text("Receiver Account ID") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-            Text("Transaction History\nНомер Транзакции, Номер отправителя, Номер получателя, Сумма")
-            Spacer(modifier = Modifier.height(8.dp))
-            transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                // Разделяем строки и добавляем переносы на новую строку после каждой операции
-                transactionHistory.split(";").forEach {
-                    Text("$it\n")
-                }
-            }
-        }
-    } else {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            TextField(
-                value = login,
-                onValueChange = { login = it },
-                label = { Text("Login") }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            TextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row {
-                Button(onClick = {
-                    val response = sendLoginRequest(login, password)
-                    message = response.message
-                    if (response.success) {
-                        loggedIn = true
-                        accountInfo = getAccountInfo(login)
-                        transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = transferAmount,
+                        onValueChange = { transferAmount = it },
+                        label = { Text("Transfer Amount") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(onClick = {
+                        val response = sendRequest("1 ${accountInfo.split(" ")[0]}, $receiverAccount, $transferAmount")
+                        transferMessage = response
+                        if (response.contains("успешно")) {
+                            accountInfo = getAccountInfo(login)
+                            transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
+                        }
+                    }) {
+                        Text("Send Transfer")
                     }
-                }) {
-                    Text("Login")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = {
-                    val response = sendRegisterRequest(login, password)
-                    message = response.message
-                    if (response.success) {
-                        loggedIn = true
-                        accountInfo = getAccountInfo(login)
-                        transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
+
+                    transferMessage?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.body1,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
                     }
-                }) {
-                    Text("Register")
+
+                    Text(
+                        text = "Transaction History",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.h6,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Text(
+                            text = transactionHistory.replace(";", "\n"),
+                            modifier = Modifier.padding(8.dp),
+                            style = MaterialTheme.typography.body1
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(onClick = {
+                        loggedIn = false
+                        accountInfo = ""
+                        login = ""
+                        password = ""
+                        message = null
+                        transferMessage = null
+                    }) {
+                        Text("Exit")
+                    }
                 }
-            }
-            if (message != null) {
-                Text(text = message!!)
+            } else {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    TextField(
+                        value = login,
+                        onValueChange = { login = it },
+                        label = { Text("Login") }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    TextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Button(onClick = {
+                            val response = sendLoginRequest(login, password)
+                            message = response.message
+                            if (response.success) {
+                                loggedIn = true
+                                accountInfo = getAccountInfo(login)
+                                transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
+                            }
+                        }) {
+                            Text("Login")
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(onClick = {
+                            val response = sendRegisterRequest(login, password)
+                            message = response.message
+                            if (response.success) {
+                                loggedIn = true
+                                accountInfo = getAccountInfo(login)
+                                transactionHistory = getTransactionHistory(accountInfo.split(" ")[0].toInt())
+                            }
+                        }) {
+                            Text("Register")
+                        }
+                    }
+
+                    message?.let {
+                        Text(
+                            text = it,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            style = MaterialTheme.typography.body2
+                        )
+                    }
+                }
             }
         }
     }
 }
-
 data class LoginResponse(val success: Boolean, val message: String)
 
 fun sendLoginRequest(login: String, password: String): LoginResponse {
